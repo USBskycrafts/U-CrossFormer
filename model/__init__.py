@@ -1,5 +1,7 @@
+from .user.net import UserNet
 
 model_list = {
+    "UserNet": UserNet
 }
 
 

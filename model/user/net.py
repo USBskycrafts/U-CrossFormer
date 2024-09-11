@@ -27,6 +27,6 @@ class UserNet(nn.Module):
         loss = self.loss(pred, target)
         return {
             "loss": loss,
-            "output": None,
+            "output": [acc_result],
             "acc_result": acc_result
         }
