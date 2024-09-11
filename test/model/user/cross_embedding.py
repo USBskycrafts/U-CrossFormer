@@ -14,16 +14,16 @@ class TestCrossScaleEmbedding(unittest.TestCase):
         y = model(x)
         print(x.shape, y.shape)
 
-        model = CrossScaleEmbedding(16, 512, reversed=True)
-        x = model(y, y, x.shape)
+        model = CrossScaleEmbedding(512, 16, reversed=True)
+        x = model([y, y, x.shape])
         print(x.shape, y.shape)
 
         model = CrossScaleEmbedding(16, 32, [4, 8, 16, 32], 4)
         y = model(x)
         print(x.shape, y.shape)
 
-        model = CrossScaleEmbedding(16, 32, [4, 8, 16, 32], 4, reversed=True)
-        x = model(y, y, input_size=x.shape)
+        model = CrossScaleEmbedding(32, 16, [4, 8, 16, 32], 4, reversed=True)
+        x = model([y, y, x.shape])
         print(x.shape, y.shape)
 
     @splitter
@@ -33,8 +33,8 @@ class TestCrossScaleEmbedding(unittest.TestCase):
         y = model(x)
         print(x.shape, y.shape)
 
-        model = CrossScaleEmbedding(16, 512, reversed=True)
-        x = model(y, y, input_size=x.shape)
+        model = CrossScaleEmbedding(512, 16, reversed=True)
+        x = model([y, y, x.shape])
         print(x.shape, y.shape)
 
         model = CrossScaleEmbedding(32, 64, [4, 8, 16, 32], 4)
@@ -42,8 +42,8 @@ class TestCrossScaleEmbedding(unittest.TestCase):
         y = model(x)
         print(x.shape, y.shape)
 
-        model = CrossScaleEmbedding(32, 64, [4, 8, 16, 32], 4, reversed=True)
-        x = model(y, y, x.shape)
+        model = CrossScaleEmbedding(64, 32, [4, 8, 16, 32], 4, reversed=True)
+        x = model([y, y, x.shape])
         print(x.shape, y.shape)
 
 

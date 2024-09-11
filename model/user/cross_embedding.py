@@ -14,20 +14,22 @@ class CrossScaleEmbedding(nn.Module):
         self.kernel_size = [k for k in sorted(kernel_size)]
         self.stride = stride
         self.reversed = reversed
-
         self.convs = nn.ModuleList()
-        token_size = self.token_size(self.kernel_size, output_dim)
-        self.dim_list = token_size
+
         if not reversed:
+            token_size = self.token_size(self.kernel_size, output_dim)
+            self.dim_list = token_size
             for i, k in enumerate(self.kernel_size):
                 self.convs.append(
                     nn.Conv2d(input_dim, token_size[i],
                               kernel_size=k, stride=stride, padding=self.padding_size(k, stride)))
         else:
+            token_size = self.token_size(self.kernel_size, input_dim)
+            self.dim_list = token_size
             for i, k in enumerate(self.kernel_size):
                 self.convs.append(
                     # Warning: may cause error if H and W are not even
-                    nn.ConvTranspose2d(2 * token_size[i], input_dim,
+                    nn.ConvTranspose2d(2 * token_size[i], output_dim,
                                        kernel_size=k, stride=stride, padding=self.padding_size(k, stride)))
 
     def token_size(self, kernel_size, output_dim) -> List[int]:
@@ -58,14 +60,16 @@ class CrossScaleEmbedding(nn.Module):
         else:
             return (kernel_size - stride + 1) // 2
 
-    def forward(self, x, y=Union[None, torch.Tensor], input_size=Union[None, torch.Size]):
+    def forward(self, input: List):
         if not self.reversed:
+            x = input
             # from [B, C, H, W] to [B, H // stride, W // stride, C * stride]
             tokens = torch.cat([conv(x)
                                 for conv in self.convs], dim=1)
             # a recursion to the deep layers
             return tokens
         else:
+            x, y, input_size = input
             assert isinstance(y, torch.Tensor)
             assert isinstance(input_size, torch.Size)
             assert x.shape == y.shape

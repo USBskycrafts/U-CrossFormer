@@ -43,9 +43,12 @@ class CrossformerUnit(nn.Module):
         self.encoder_embedding = CrossScaleEmbedding(
             **dict(cross_scale_params))
         self.encoder_layers = CrossformerPack(**dict(transformer_params))
+
+        cross_scale_params.input_dim, cross_scale_params.output_dim = cross_scale_params.output_dim, cross_scale_params.input_dim
+        transformer_params.input_dim = cross_scale_params.output_dim
+
         self.decoder_embedding = CrossScaleEmbedding(
             **cross_scale_params, reversed=True)
-        transformer_params.input_dim = cross_scale_params.input_dim
         self.decoder_layers = CrossformerPack(**dict(transformer_params))
 
     def forward(self, x, next: List[nn.Module]):
@@ -58,34 +61,60 @@ class CrossformerUnit(nn.Module):
         else:
             h_next = h
 
-        h = self.decoder_embedding(h_next, h, x.shape)
+        h = self.decoder_embedding([h_next, h, x.shape])
         y = self.decoder_layers(h)
         return y
 
 
-class CrossformerPairBuilder:
-    def __init__(self, cross_scale_params: CrossScaleParams, transformer_params: CrossformerParams):
-        self.encoder = nn.Sequential(
-            CrossScaleEmbedding(
-                **dict(cross_scale_params)),
-            CrossformerPack(**dict(transformer_params))
-        )
-        transformer_params.input_dim = cross_scale_params.input_dim
+class CrossformerEncoder(nn.Module):
+    def __init__(self, cross_params: List[CrossScaleParams], crossformer_params: List[CrossformerParams]):
+        super(CrossformerEncoder, self).__init__()
+        assert len(cross_params) == len(crossformer_params)
+        self.embeddings = nn.ModuleList()
+        self.crossformers = nn.ModuleList()
 
-        class SequentialAdapter(nn.Module):
-            def __init__(self):
-                super(SequentialAdapter, self).__init__()
-                self.embedding = CrossScaleEmbedding(
-                    **cross_scale_params, reversed=True)
+        for cross_param in cross_params:
+            cross_param = dict(cross_param)
+            self.embeddings.append(CrossScaleEmbedding(**cross_param))
 
-            def forward(self, input):
-                x, h, shape = input
-                return self.embedding(x, h, shape)
+        for crossformer_param in crossformer_params:
+            crossformer_param = dict(crossformer_param)
+            self.crossformers.append(CrossformerPack(**crossformer_param))
 
-        self.decoder = nn.Sequential(
-            SequentialAdapter(),
-            CrossformerPack(**dict(transformer_params))
-        )
+    def forward(self, x):
+        features = []
+        shapes = []
+        for embedding, crossformer in zip(self.embeddings, self.crossformers):
+            shapes.append(x.shape)
+            x = embedding(x)
+            x = crossformer(x)
+            features.append(x)
+        return features, shapes
 
-    def build(self) -> Tuple[nn.Module, nn.Module]:
-        return self.encoder, self.decoder
+
+class CrossformerDecoder(nn.Module):
+    def __init__(self, cross_params: List[CrossScaleParams], crossformer_params: List[CrossformerParams]):
+        super(CrossformerDecoder, self).__init__()
+        assert len(cross_params) == len(crossformer_params)
+        self.embeddings = nn.ModuleList()
+        self.crossformers = nn.ModuleList()
+
+        for cross_param in cross_params:
+            cross_param = dict(cross_param)
+            self.embeddings.append(CrossScaleEmbedding(
+                **cross_param, reversed=True))
+
+        for crossformer_param in crossformer_params:
+            crossformer_param = dict(crossformer_param)
+            self.crossformers.append(CrossformerPack(**crossformer_param))
+
+    def forward(self, features: List, shapes: List):
+        assert len(features) == len(shapes)
+        assert len(features) == len(self.embeddings)
+        features = list(reversed(features))
+        shapes = list(reversed(shapes))
+        y = features[0]
+        for buddy, shape, embedding, crossformer in zip(features, shapes, self.embeddings, self.crossformers):
+            y = embedding([buddy, y, shape])
+            y = crossformer(y)
+        return y
