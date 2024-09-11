@@ -103,7 +103,7 @@ def train(parameters, config, gpu_list, do_test=False):
             total_loss += float(loss)
 
             loss.backward()
-            optimizer.step(global_step)
+            optimizer.step()
             exp_lr_scheduler.step()
 
             if step % output_time == 0:
