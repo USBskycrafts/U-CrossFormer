@@ -75,7 +75,7 @@ class CrossScaleEmbedding(nn.Module):
             assert x.shape == y.shape
             features = torch.concat([x, y], dim=1)
             offset = 0
-            output = torch.zeros(*input_size)
+            output = torch.zeros(*input_size, device=features.device)
             for i, d in enumerate(self.dim_list):
                 output += self.convs[i](features[:,
                                         offset:offset + 2 * d, :, :], output_size=input_size)

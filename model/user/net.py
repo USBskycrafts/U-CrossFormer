@@ -9,8 +9,8 @@ from tools.accuracy_tool import general_image_metrics
 class UserNet(nn.Module):
     def __init__(self, config, gpu_list, *args, **kwargs):
         super(UserNet, self).__init__()
-        self.encoder = CrossformerEncoder(encoder_params.values())
-        self.decoder = CrossformerDecoder(decoder_params.values())
+        self.encoder = CrossformerEncoder(*encoder_params.values())
+        self.decoder = CrossformerDecoder(*decoder_params.values())
 
         self.loss = nn.L1Loss()
 
@@ -18,13 +18,14 @@ class UserNet(nn.Module):
         pass
 
     def forward(self, data, config, gpu_list, acc_result, mode):
-        x = torch.cat([data["t1"], data["t2"]], dim=1)
+        x = data["t1"]
         features, shapes = self.encoder(x)
         pred = self.decoder(features, shapes)
         target = data["t1ce"]
-        general_image_metrics(pred, target, config, acc_result)
 
         loss = self.loss(pred, target)
+        acc_result = general_image_metrics(
+            pred, target, config, acc_result)
         return {
             "loss": loss,
             "output": [acc_result],
