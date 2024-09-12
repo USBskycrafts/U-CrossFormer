@@ -13,10 +13,10 @@ class NIFTI1Formatter(BasicFormatter):
 
     def process(self, data: List[Dict[str, torch.Tensor]], config, mode, *args, **params):
         t1_list = [t1 for t1 in map(lambda x: x['t1'], data)]
-        # t2_list = [t2 for t2 in map(lambda x: x['t2'], data)]
+        t2_list = [t2 for t2 in map(lambda x: x['t2'], data)]
         t1ce_list = [t1ce for t1ce in map(lambda x: x['t1ce'], data)]
         return {
             't1': torch.stack(t1_list, dim=0),
-            # 't2': torch.stack(t2_list, dim=0),
+            't2': torch.stack(t2_list, dim=0),
             't1ce': torch.stack(t1ce_list, dim=0)
         }

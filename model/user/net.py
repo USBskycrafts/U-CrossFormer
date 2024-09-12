@@ -18,7 +18,7 @@ class UserNet(nn.Module):
         pass
 
     def forward(self, data, config, gpu_list, acc_result, mode):
-        x = data["t1"]
+        x = torch.cat([data["t1"], data["t2"]], dim=1)
         features, shapes = self.encoder(x)
         pred = self.decoder(features, shapes)
         target = data["t1ce"]

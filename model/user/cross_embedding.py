@@ -70,14 +70,16 @@ class CrossScaleEmbedding(nn.Module):
             return tokens
         else:
             x, y, input_size = input
+            bs, c, h, w = input_size
+            c = self.output_dim
             assert isinstance(y, torch.Tensor)
             assert isinstance(input_size, torch.Size)
             assert x.shape == y.shape
             features = torch.concat([x, y], dim=1)
             offset = 0
-            output = torch.zeros(*input_size, device=features.device)
+            output = torch.zeros((bs, c, h, w), device=features.device)
             for i, d in enumerate(self.dim_list):
                 output += self.convs[i](features[:,
-                                        offset:offset + 2 * d, :, :], output_size=input_size)
+                                        offset:offset + 2 * d, :, :], output_size=(bs, c, h, w))
                 offset = offset + 2 * d
             return output

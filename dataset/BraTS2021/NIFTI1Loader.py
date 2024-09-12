@@ -45,11 +45,11 @@ class NIFTI1Loader(Dataset):
                         data = nib.nifti1.load(file_path)
                         modals["t1"] = self.transform_tensor(
                             data.get_fdata(), mode)
-                    # elif "t2" in file:
-                    #     file_path = os.path.join(dataset_path, item, file)
-                    #     data = nib.nifti1.load(file_path)
-                    #     modals["t2"] = self.transform_tensor(
-                    #         data.get_fdata(), mode)
+                    elif "t2" in file:
+                        file_path = os.path.join(dataset_path, item, file)
+                        data = nib.nifti1.load(file_path)
+                        modals["t2"] = self.transform_tensor(
+                            data.get_fdata(), mode)
 
                 # now modals is a dictionary of lists
                 dataset.extend([dict(zip(modals.keys(), values))
@@ -69,6 +69,6 @@ class NIFTI1Loader(Dataset):
         h, w, c = tensor.shape
         tensor = tensor[:, :, c // 4: c // 4 * 3]
         if mode != "test":
-            tensor = tensor[20:220, 40:200, :]
+            tensor = tensor[40:200, 30:220, :]
         tensor = tensor.permute(2, 0, 1)
         return torch.split(tensor, 1, dim=0)
