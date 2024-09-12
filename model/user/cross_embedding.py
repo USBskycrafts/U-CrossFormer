@@ -1,6 +1,39 @@
 import torch
 import torch.nn as nn
-from typing import List, Union
+from typing import List, Tuple
+import torch.nn.functional as F
+
+
+class ConvShuffle(nn.Module):
+    def __init__(self, input_dim: int, output_dim: int, kernel_size: int,
+                 stride: int):
+        super(ConvShuffle, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.kernel_size = kernel_size
+        self.stride = stride
+
+        self.conv = nn.Conv2d(input_dim, output_dim *
+                              stride * stride, kernel_size=1)
+        self.pixel_shuffle = nn.PixelShuffle(stride)
+
+    def forward(self, x, output_size):
+        x = self.conv(x)
+        x = self.pixel_shuffle(x)
+        bs, c, h, w = x.size()
+        bs_, c_, h_, w_ = output_size
+        assert bs == bs_ and c == c_
+        diff_x = w_ - w
+        diff_y = h_ - h
+        padding_size = (
+            diff_x // 2,
+            diff_x - diff_x // 2,
+            diff_y // 2,
+            diff_y - diff_y // 2
+        )
+        x = F.pad(x, padding_size, mode='reflect')
+        assert x.shape == output_size, f"{x.shape} != {output_size}"
+        return x
 
 
 class CrossScaleEmbedding(nn.Module):
@@ -29,8 +62,8 @@ class CrossScaleEmbedding(nn.Module):
             for i, k in enumerate(self.kernel_size):
                 self.convs.append(
                     # Warning: may cause error if H and W are not even
-                    nn.ConvTranspose2d(2 * token_size[i], output_dim,
-                                       kernel_size=k, stride=stride, padding=self.padding_size(k, stride)))
+                    ConvShuffle(2 * token_size[i], output_dim,
+                                kernel_size=k, stride=stride))
 
     def token_size(self, kernel_size, output_dim) -> List[int]:
         token_dim = []
